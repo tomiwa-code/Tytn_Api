@@ -124,18 +124,9 @@ const validateUserDetails = (data) => {
 const validateProduct = (data) => {
   const errors = {};
 
-  const { title, description, price, color, size, img, categories } = data;
-
-  if (
-    !title ||
-    !description ||
-    !price ||
-    !color ||
-    !size ||
-    !categories ||
-    !img
-  ) {
-    errors.message = "Please provide all the required fields";
+  const { title, description, price, color, size, categories } = data;
+  if (!title || !description || !price || !color || !size || !categories) {
+    errors.message = "Missing required fields";
   }
 
   if (
@@ -144,10 +135,49 @@ const validateProduct = (data) => {
     price === "" ||
     color.length === 0 ||
     size.length === 0 ||
-    categories.length === 0 ||
-    img === ""
+    categories.length === 0
   ) {
     errors.message = "Inputs cannot be empty";
+  }
+
+  return {
+    errors,
+    valid: Object.keys(errors).length === 0, // Valid if there are no errors
+  };
+};
+
+const validateOrders = (data) => {
+  const errors = {};
+  const {
+    products,
+    totalPrice,
+    shippingAddress,
+    transactionId,
+    paymentMethod,
+  } = data;
+
+  if (
+    !products ||
+    !totalPrice ||
+    !shippingAddress ||
+    !transactionId ||
+    !paymentMethod
+  ) {
+    errors.message = "Missing required fields";
+  }
+
+  return {
+    errors,
+    valid: Object.keys(errors).length === 0, // Valid if there are no errors
+  };
+};
+
+const validateAnnouncement = (data) => {
+  const errors = {};
+  const { title, text } = data;
+
+  if (!title || !text) {
+    errors.message = "Missing required fields";
   }
 
   return {
@@ -161,5 +191,7 @@ module.exports = {
   validateUserPassword,
   validateUserEmail,
   validateUserDetails,
-  validateProduct
+  validateProduct,
+  validateOrders,
+  validateAnnouncement,
 };

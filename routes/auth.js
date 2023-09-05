@@ -11,8 +11,24 @@ const { generateToken, generateResetToken } = require("../utils/token");
 const createErrorResponse = require("../utils/errorResponse");
 const xss = require("xss");
 const jwt = require("jsonwebtoken");
-
 const router = express.Router();
+const passport = require("passport");
+
+// Google auth
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: `${process.env.CLIENT_URL}/login?success=false&eae=true`, // Redirect to the login page on failure
+  }),
+  (req, res) => {
+    res.redirect(`${process.env.CLIENT_URL}/login?token=${req.user.token}`);
+  }
+);
 
 // Signup route
 router.post("/signup", async (req, res) => {
@@ -24,11 +40,11 @@ router.post("/signup", async (req, res) => {
     }
 
     // extract username and password from body and sanitize
-    const email = xss(req.body.email);
+    const reqEmail = xss(req.body.email);
     const sanitizePassword = xss(req.body.password);
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ reqEmail });
     if (existingUser) {
       return res
         .status(400)
@@ -41,7 +57,7 @@ router.post("/signup", async (req, res) => {
 
     // Create a new user
     const newUser = new User({
-      email,
+      email: reqEmail,
       password: hashedPassword,
     });
 
@@ -52,10 +68,10 @@ router.post("/signup", async (req, res) => {
     const token = generateToken(savedUser);
 
     // Prepare the user data to send to the frontend
-    const { password, ...others } = savedUser._doc;
+    const { email, _id } = savedUser;
 
     // Send the user data and token to the frontend
-    res.status(200).json({ token, user: others });
+    res.status(200).json({ token, user: { email, _id } });
   } catch (error) {
     res.status(500).json(createErrorResponse("Something went wrong"));
   }
@@ -71,11 +87,11 @@ router.post("/signin", async (req, res) => {
     }
 
     // extract username and password from body and sanitize
-    const email = xss(req.body.email);
+    const reqEmail = xss(req.body.email);
     const sanitizePassword = xss(req.body.password);
 
     // Check if the user exists
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ reqEmail });
     if (!user) {
       return res
         .status(400)
@@ -83,7 +99,7 @@ router.post("/signin", async (req, res) => {
     }
 
     // Compare the provided password with the stored password
-    const validPassword = await bcrypt.compare(sanitizePassword, user.password);
+    const validPassword = bcrypt.compare(sanitizePassword, user.password);
     if (!validPassword) {
       return res
         .status(400)
@@ -94,12 +110,12 @@ router.post("/signin", async (req, res) => {
     const token = generateToken(user);
 
     // Prepare the user data to send to the frontend (excluding the password)
-    const { password, ...others } = user._doc;
+    const { email, _id } = user;
 
     // Send the token and user data to the frontend
     return res.status(200).json({
       token,
-      user: others,
+      user: { email, _id },
     });
   } catch (err) {
     return res.status(500).json(createErrorResponse("Something went wrong"));
@@ -190,7 +206,7 @@ router.post("/reset-password/:userId/:token", async (req, res) => {
       return res.status(400).json(createErrorResponse(errors));
     }
 
-    const newPassword = xss(req.body.password)
+    const newPassword = xss(req.body.password);
 
     // Find the user by ID
     const user = await User.findById(userId);

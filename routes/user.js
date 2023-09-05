@@ -17,6 +17,27 @@ const bcrypt = require("bcrypt");
 // verify the token
 router.use(verifyToken);
 
+// Route to get user details based on token
+router.get("/user-details", verifyToken, async (req, res) => {
+  try {
+    // Use the decoded token to get the user ID
+    const userId = req.user.userId;
+
+    // Find the user by ID
+    const user = await User.findById(userId).select("-password");
+
+    if (!user) {
+      return res.status(404).json(createErrorResponse("User not found"));
+    }
+
+    // Send the user details in the response (excluding sensitive information like password)
+    const { password, ...userData } = user._doc;
+    res.status(200).json(userData);
+  } catch (error) {
+    res.status(500).json(createErrorResponse("An error occurred"));
+  }
+});
+
 // Get all users
 router.get("/", authenticateAdmin, async (req, res) => {
   try {

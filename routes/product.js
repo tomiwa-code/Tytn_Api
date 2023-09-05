@@ -8,50 +8,74 @@ const {
 const createErrorResponse = require("../utils/errorResponse");
 const { validateProduct } = require("../utils/validators");
 const slugify = require("slugify");
+const cloudinary = require("../utils/cloudinaryConfig");
+const upload = require("../utils/multerConfig");
 
 const router = express.Router();
 
 router.use(verifyToken);
 
 // Create a new product
-router.post("/create-product", authenticateAdmin, async (req, res) => {
-  try {
-    // Validate the product details
-    const { errors, valid } = validateProduct(req.body);
-    if (!valid) {
-      return res.status(400).json(createErrorResponse(errors.message));
+router.post(
+  "/create-product",
+  authenticateAdmin,
+  upload.single("img"),
+  async (req, res) => {
+    try {
+      // Validate the product details
+      const { errors, valid } = validateProduct(req.body);
+      if (!valid) {
+        return res.status(400).json(createErrorResponse(errors.message));
+      }
+
+      const productData = {
+        title: req.body.title,
+        description: req.body.description,
+        price: req.body.price,
+        color: req.body.color,
+        size: req.body.size,
+        categories: req.body.categories,
+        percentageOff: req.body.percentageOff,
+        type: req.body.type,
+        inStock: req.body.inStock,
+      };
+
+      // Check if the title already exists
+      const existingProduct = await Product.findOne({ title: req.body.title });
+      if (existingProduct) {
+        return res.status(400).json({ error: "Title already exists" });
+      }
+
+      // Upload the image to Cloudinary
+      if (!req.file) {
+        return res.status(400).json({ error: "upload a valid image" });
+      }
+
+      const imageResult = await cloudinary.uploader.upload(req.file.path, {
+        public_id: `/${req.file.filename}`,
+        folder: "tytn/product_images",
+        use_filename: true,
+        unique_filename: false,
+        crop: "fill",
+        width: 500,
+        height: 500,
+      });
+
+      // Save the image URL in the productData
+      productData.img = imageResult.secure_url;
+
+      // Create the new product
+      const newProduct = new Product(productData);
+
+      // Save the product to the database
+      const savedProduct = await newProduct.save();
+
+      res.status(201).json(savedProduct);
+    } catch (error) {
+      res.status(500).json(createErrorResponse("An error occurred"));
     }
-
-    const productData = {
-      title: req.body.title,
-      description: req.body.description,
-      price: req.body.price,
-      color: req.body.color,
-      size: req.body.size,
-      img: req.body.img,
-      categories: req.body.categories,
-      percentageOff: req.body.percentageOff,
-      type: req.body.type,
-      inStock: req.body.inStock,
-    };
-
-    // Check if the title already exists
-    const existingProduct = await Product.findOne({ title: req.body.title });
-    if (existingProduct) {
-      return res.status(400).json({ error: "Title already exists" });
-    }
-
-    // Create the new product
-    const newProduct = new Product(productData);
-
-    // Save the product to the database
-    const savedProduct = await newProduct.save();
-
-    res.status(201).json(savedProduct);
-  } catch (error) {
-    res.status(500).json(createErrorResponse("An error occurred"));
   }
-});
+);
 
 // Get all products with pagination
 router.get("/", async (req, res) => {
@@ -97,7 +121,9 @@ router.get("/product-type", async (req, res) => {
 
     if (req.query.trend) {
       query.type = "trend";
+      console.log("tf");
     } else if (req.query.newProduct) {
+      console.log("tfs");
       query.type = "newProduct";
     }
 
@@ -133,7 +159,7 @@ router.get("/search", async (req, res) => {
         { description: { $regex: query, $options: "i" } },
         { categories: { $regex: query, $options: "i" } },
       ],
-    });
+    }).sort({ _id: -1 });
 
     res.status(200).json(products);
   } catch (error) {
@@ -142,54 +168,74 @@ router.get("/search", async (req, res) => {
 });
 
 // Update a product
-router.put("/update-product/:productId", async (req, res) => {
-  // Validate the product data
-  const { errors, valid } = validateProduct(req.body);
-  if (!valid) {
-    return res.status(400).json(createErrorResponse(errors.message));
-  }
-
-  try {
-    const slug = slugify(req.body.title, {
-      lower: true,
-      remove: /[*+~.()'"!:@]/g,
-    });
-
-    const productData = {
-      title: req.body.title,
-      description: req.body.description,
-      price: req.body.price,
-      color: req.body.color,
-      size: req.body.size,
-      img: req.body.img,
-      categories: req.body.categories,
-      percentageOff: req.body.percentageOff,
-      type: req.body.type,
-      inStock: req.body.inStock,
-      slug,
-    };
-
-    // Check if the title already exists
-    const existingProduct = await Product.findOne({ title: req.body.title });
-    if (existingProduct) {
-      return res.status(400).json({ error: "Title already exists" });
+router.put(
+  "/update-product/:productId",
+  authenticateAdmin,
+  upload.single("img"),
+  async (req, res) => {
+    // Validate the product data
+    const { errors, valid } = validateProduct(req.body);
+    if (!valid) {
+      return res.status(400).json(createErrorResponse(errors.message));
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.productId,
-      productData,
-      { new: true }
-    );
+    try {
+      const slug = slugify(req.body.title, {
+        lower: true,
+        remove: /[*+~.()'"!:@]/g,
+      });
 
-    if (!updatedProduct) {
-      return res.status(404).json(createErrorResponse("Product not found"));
+      const productData = {
+        title: req.body.title,
+        description: req.body.description,
+        price: req.body.price,
+        color: req.body.color,
+        size: req.body.size,
+        categories: req.body.categories,
+        percentageOff: req.body.percentageOff,
+        type: req.body.type,
+        inStock: req.body.inStock,
+        slug,
+      };
+
+      // Check if the title already exists
+      const existingProduct = await Product.findOne({ title: req.body.title });
+      if (existingProduct) {
+        return res.status(400).json({ error: "Title already exists" });
+      }
+
+      // Upload the image to Cloudinary
+      if (req.file) {
+        const imageResult = await cloudinary.uploader.upload(req.file.path, {
+          public_id: `/${req.file.filename}`,
+          folder: "tytn/product_images",
+          use_filename: true,
+          unique_filename: false,
+          crop: "fill",
+          width: 500,
+          height: 500,
+        });
+        // Save the image URL in the productData
+        productData.img = imageResult.secure_url;
+      }
+
+      const updatedProduct = await Product.findByIdAndUpdate(
+        req.params.productId,
+        productData,
+        { new: true }
+      );
+
+      if (!updatedProduct) {
+        return res.status(404).json(createErrorResponse("Product not found"));
+      }
+
+      res.status(200).json(updatedProduct);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json(createErrorResponse("An error occurred"));
     }
-
-    res.status(200).json(updatedProduct);
-  } catch (error) {
-    res.status(500).json(createErrorResponse("An error occurred"));
   }
-});
+);
 
 // Delete a product
 router.delete("/:productId", authenticateAdmin, async (req, res) => {
@@ -204,13 +250,12 @@ router.delete("/:productId", authenticateAdmin, async (req, res) => {
 
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
-    console.log(error);
     res.status(500).json(createErrorResponse("An error occurred"));
   }
 });
 
 // Like or unlike a product
-router.post("/like/:productId/:userId", authenticateUser, async (req, res) => {
+router.post("/like/:productId", authenticateUser, async (req, res) => {
   const { productId } = req.params;
   const userId = req.user.userId;
 
@@ -238,7 +283,7 @@ router.post("/like/:productId/:userId", authenticateUser, async (req, res) => {
 });
 
 // Get all products liked by a user
-router.get("/liked/:userId", authenticateUser, async (req, res) => {
+router.get("/liked", authenticateUser, async (req, res) => {
   const userId = req.user.userId;
 
   try {
@@ -292,7 +337,6 @@ router.get("/stats", authenticateAdmin, async (req, res) => {
 
     res.status(200).json({ totalProducts, productStats });
   } catch (error) {
-    console.log(error);
     res.status(500).json(createErrorResponse("An error occurred"));
   }
 });
