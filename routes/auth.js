@@ -91,7 +91,7 @@ router.post("/signin", async (req, res) => {
     const sanitizePassword = xss(req.body.password);
 
     // Check if the user exists
-    const user = await User.findOne({ reqEmail });
+    const user = await User.findOne({ email: reqEmail });
     if (!user) {
       return res
         .status(400)
