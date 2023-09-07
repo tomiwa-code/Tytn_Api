@@ -23,7 +23,7 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: `${process.env.CLIENT_URL}/login?success=false&eae=true`, // Redirect to the login page on failure
+    failureRedirect: `${process.env.CLIENT_URL}/auth?success=false&eae=true`, // Redirect to the login page on failure
   }),
   (req, res) => {
     res.redirect(`${process.env.CLIENT_URL}/auth?token=${req.user.token}`);
