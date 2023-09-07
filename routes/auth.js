@@ -26,7 +26,7 @@ router.get(
     failureRedirect: `${process.env.CLIENT_URL}/login?success=false&eae=true`, // Redirect to the login page on failure
   }),
   (req, res) => {
-    res.redirect(`${process.env.CLIENT_URL}/login?token=${req.user.token}`);
+    res.redirect(`${process.env.CLIENT_URL}/auth?token=${req.user.token}`);
   }
 );
 
