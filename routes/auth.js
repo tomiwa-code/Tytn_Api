@@ -44,7 +44,7 @@ router.post("/signup", async (req, res) => {
     const sanitizePassword = xss(req.body.password);
 
     // Check if user already exists
-    const existingUser = await User.findOne({ reqEmail });
+    const existingUser = await User.findOne({ email: reqEmail });
     if (existingUser) {
       return res
         .status(400)
