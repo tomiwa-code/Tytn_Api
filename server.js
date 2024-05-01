@@ -11,26 +11,18 @@ const productRouter = require("./routes/product");
 const orderRouter = require("./routes/order");
 const announcementRouter = require("./routes/announcement");
 
+const corsOptions = {
+  origin: [
+    process.env.CLIENT_URL,
+    "https://tytn.vercel.app",
+    "https://tytn_admin.vercel.app"
+  ],
+  methods: "GET, POST, DELETE, PUT",
+  credentials: true
+};
+
 const app = express();
-app.use(
-  cors(
-    {
-      origin: process.env.CLIENT_URL,
-      methods: "GET, POST, DELETE, PUT",
-      credentials: true,
-    },
-    {
-      origin: "https://tytn.vercel.app",
-      methods: "GET, POST, DELETE, PUT",
-      credentials: true,
-    }
-  ),
-  {
-    origin: "https://tytn_admin.vercel.app",
-    methods: "GET, POST, DELETE, PUT",
-    credentials: true,
-  }
-);
+app.use(cors(corsOptions));
 
 // Set up session management
 app.use(
