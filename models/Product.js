@@ -60,7 +60,7 @@ const productSchema = new mongoose.Schema(
       default: 0,
     },
     inStock: {
-      type: number,
+      type: Number,
       default: 0
     },
   },
