@@ -10,6 +10,7 @@ const authRouter = require("./routes/auth");
 const productRouter = require("./routes/product");
 const orderRouter = require("./routes/order");
 const announcementRouter = require("./routes/announcement");
+const categoryRouter = require("./routes/category");
 
 const corsOptions = {
   origin: [
@@ -43,6 +44,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/products", productRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/announcement", announcementRouter);
+app.use("/api/category", categoryRouter);
 
 // Default route
 app.get("/", (req, res) => {

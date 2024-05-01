@@ -78,6 +78,61 @@ router.post(
   }
 );
 
+// SAVE AND PUBLISH PRODUCT
+router.post(
+  "/publish-product",
+  authenticateAdmin,
+  upload.single("img"),
+  async (req, res) => {
+    try {
+      // Validate the product details
+      const { errors, valid } = validateProduct(req.body);
+      if (!valid) {
+        return res.status(400).json(createErrorResponse(errors.message));
+      }
+
+      const productData = {
+        title: req.body.title,
+        description: req.body.description,
+        price: req.body.price, 
+        new_price: req.body.new_price, 
+        color: req.body.color,
+        size: req.body.size,
+        categories: req.body.categories,
+        percentageOff: req.body.percentageOff,
+        label_type: req.body.label_type,
+        inStock: req.body.inStock,
+        img: req.file? cloudinary.uploader.upload(req.file.path, {
+          public_id: `/${req.file.filename}`,
+          folder: "tytn/product_images",
+          use_filename: true,
+          unique_filename: false,
+          crop: "fill",
+          width: 500,
+          height: 500,
+        }).then(imageResult => imageResult.secure_url) : null,
+        published: true, // Set published to true
+      };
+
+      // Check if the title already exists
+      const existingProduct = await Product.findOne({ title: req.body.title });
+      if (existingProduct) {
+        return res.status(400).json({ error: "Title already exists" });
+      }
+
+      // Create the new product
+      const newProduct = new Product(productData);
+
+      // Save the product to the database
+      const savedProduct = await newProduct.save();
+
+      res.status(201).json(savedProduct);
+    } catch (error) {
+      res.status(500).json(createErrorResponse(error));
+    }
+  }
+);
+
 // Get all products with pagination
 router.get("/", async (req, res) => {
   try {
@@ -237,6 +292,36 @@ router.put(
     }
   }
 );
+
+// Add this route after the existing routes in your router file
+router.put(
+  "/publish-existing-product/:productId",
+  authenticateAdmin,
+  async (req, res) => {
+    try {
+      // Extract the product ID from the request parameters
+      const { productId } = req.params;
+
+      // Find the product by ID and update the published field to true
+      const updatedProduct = await Product.updateOne(
+        { _id: productId },
+        { $set: { published: true } }
+      );
+
+      // Check if the update was successful
+      if (updatedProduct.nModified === 0) {
+        return res.status(404).json(createErrorResponse("Product not found or already published"));
+      }
+
+      // Return the updated product
+      const product = await Product.findById(productId);
+      res.status(200).json(product);
+    } catch (error) {
+      res.status(500).json(createErrorResponse("An error occurred"));
+    }
+  }
+);
+
 
 // Delete a product
 router.delete("/:productId", authenticateAdmin, async (req, res) => {

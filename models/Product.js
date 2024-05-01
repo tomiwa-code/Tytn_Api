@@ -43,6 +43,10 @@ const productSchema = new mongoose.Schema(
       type: [String],
       required: true,
     },
+    published: {
+      type: Boolean,
+      default: false,
+    },
     label_type: {
       type: String,
     },
