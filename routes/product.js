@@ -31,12 +31,13 @@ router.post(
       const productData = {
         title: req.body.title,
         description: req.body.description,
-        price: req.body.price,
+        price: req.body.price, 
+        new_price: req.body.new_price, 
         color: req.body.color,
         size: req.body.size,
         categories: req.body.categories,
         percentageOff: req.body.percentageOff,
-        type: req.body.type,
+        label_type: req.body.label_type,
         inStock: req.body.inStock,
       };
 
