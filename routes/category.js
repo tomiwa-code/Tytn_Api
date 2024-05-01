@@ -117,3 +117,5 @@ router.delete("/:categoryId", authenticateAdmin, async (req, res) => {
     res.status(500).json(createErrorResponse("An error occurred"));
   }
 });
+
+module.exports = router;
