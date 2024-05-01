@@ -13,11 +13,23 @@ const announcementRouter = require("./routes/announcement");
 
 const app = express();
 app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
+  cors(
+    {
+      origin: process.env.CLIENT_URL,
+      methods: "GET, POST, DELETE, PUT",
+      credentials: true,
+    },
+    {
+      origin: "https://tytn.vercel.app",
+      methods: "GET, POST, DELETE, PUT",
+      credentials: true,
+    }
+  ),
+  {
+    origin: "https://tytn_admin.vercel.app",
     methods: "GET, POST, DELETE, PUT",
     credentials: true,
-  })
+  }
 );
 
 // Set up session management

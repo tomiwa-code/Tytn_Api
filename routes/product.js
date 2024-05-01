@@ -72,7 +72,7 @@ router.post(
 
       res.status(201).json(savedProduct);
     } catch (error) {
-      res.status(500).json(createErrorResponse("An error occurred"));
+      res.status(500).json(createErrorResponse(error));
     }
   }
 );

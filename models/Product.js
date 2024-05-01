@@ -16,7 +16,14 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    new_price: {
+      type: Number,
+    },
     percentageOff: {
+      type: Number,
+      default: 0,
+    },
+    orders: {
       type: Number,
       default: 0,
     },
@@ -36,7 +43,7 @@ const productSchema = new mongoose.Schema(
       type: [String],
       required: true,
     },
-    type: {
+    label_type: {
       type: String,
     },
     slug: {
@@ -53,8 +60,8 @@ const productSchema = new mongoose.Schema(
       default: 0,
     },
     inStock: {
-      type: Boolean,
-      default: true,
+      type: number,
+      default: 0
     },
   },
   {
