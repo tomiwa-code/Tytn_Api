@@ -74,7 +74,7 @@ router.put(
   async (req, res) => {
     try {
       const { categoryId } = req.params;
-      const { name, description, img } = req.body;
+      const { name, description } = req.body;
 
       // Check if the new category name already exists
       const existingCategory = await Category.findOne({ name });
@@ -82,22 +82,25 @@ router.put(
         return res.status(400).json(createErrorResponse("Category name already exists"));
       }
 
+       // Upload image to Cloudinary and get the secure URL
+       let imageUrl = null;
+       if (req.file) {
+         const imageResult = await cloudinary.uploader.upload(req.file.path, {
+           public_id: `/${req.file.filename}`,
+           folder: "tytn/category_images",
+           use_filename: true,
+           unique_filename: false,
+           crop: "fill",
+           width: 500,
+           height: 500,
+         });
+         imageUrl = imageResult.secure_url;
+       }
+
       const categoryData = {
         name,
         description,
-        ...(img && {
-          img: cloudinary.uploader
-            .upload(img.path, {
-              public_id: `/${img.filename}`,
-              folder: "tytn/category_images",
-              use_filename: true,
-              unique_filename: false,
-              crop: "fill",
-              width: 500,
-              height: 500,
-            })
-            .then((imageResult) => imageResult.secure_url),
-        }),
+        img: imageUrl
       };
 
       const updatedCategory = await Category.findByIdAndUpdate(
